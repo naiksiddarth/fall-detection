@@ -9,6 +9,8 @@ import io
 import os       # --- NEW ---
 import signal   # --- NEW ---
 
+import utils
+
 # --- Flask App Setup ---
 app = Flask(__name__)
 
@@ -107,9 +109,7 @@ def detection_thread():
     global is_recording, video_writer, recording_lock
     
     print("Starting camera feed...")
-    picam2 = Picamera2()
-    picam2.configure(picam2.create_preview_configuration(main={"size": (640, 480), "format": "RGB888"}))
-    picam2.start()
+
 
     # --- FPS Calculation Variables ---
     prev_time = 0 
@@ -124,7 +124,7 @@ def detection_thread():
             # -----------------------
 
             # Capture a frame
-            im = picam2.capture_array()
+            im = utils.get_current_frame()
             
             # Process the image with MediaPipe
             im.flags.writeable = False
@@ -185,7 +185,6 @@ def detection_thread():
         
         # Clean up MediaPipe and Camera
         pose.close()
-        picam2.stop()
         print("Detection thread cleaned up.")
 
 def generate_frames():
