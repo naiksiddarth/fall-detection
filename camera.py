@@ -6,7 +6,7 @@ class CameraStream:
     
     def capture_frame(self):
         _ , frame = self._cap.read()
-        return frame
+        return cv2.flip(frame, 1)
     
     def stop(self):
         self._cap.release()
