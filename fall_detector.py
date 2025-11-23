@@ -2,6 +2,7 @@
 import cv2
 import mediapipe as mp
 import time
+from config import frame_size
 
 class FallDetector:
     def __init__(self):
@@ -25,7 +26,7 @@ class FallDetector:
         if landmarks:
             try:
                 landmark = landmarks.landmark[getattr(self.mp_pose.PoseLandmark, landmark_name).value]
-                return int(landmark.x * 640), int(landmark.y * 480) # Assumes 640x480
+                return int(landmark.x * frame_size[0]), int(landmark.y * frame_size[1]) 
             except:
                 return None, None
         return None, None
@@ -43,20 +44,24 @@ class FallDetector:
         if left_hip_y is None or right_hip_y is None:
             return None
 
+        if left_shoulder_y is None or right_shoulder_y is None:
+            return None
+
         current_hip_y = (left_hip_y + right_hip_y) / 2
-        
+
+        current_shoulder_y = (left_shoulder_y + right_shoulder_y) / 2
+
         if self.last_hip_y > 0 and (self.last_hip_y - current_hip_y) > self.fall_threshold:
             if not self.fall_detected:
                 print("Potential Fall: Rapid drop detected!")
                 self.fall_detected = True
                 self.fall_time_start = time.time()
 
-        if left_shoulder_y is not None and right_shoulder_y is not None:
-            hip_shoulder_height_diff = abs(current_hip_y - (left_shoulder_y + right_shoulder_y) / 2)
-            if hip_shoulder_height_diff < 50:
-                self.time_in_horizontal_pos += 1
-            else:
-                self.time_in_horizontal_pos = 0
+        hip_shoulder_height_diff = abs(current_hip_y - current_shoulder_y)
+        if hip_shoulder_height_diff < 50:
+            self.time_in_horizontal_pos += 1
+        else:
+            self.time_in_horizontal_pos = 0
         
         if self.fall_detected or self.time_in_horizontal_pos > 60:
             if not self.fall_detected:
