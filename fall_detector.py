@@ -7,7 +7,7 @@ class FallDetector:
     def __init__(self):
         print("Initializing MediaPipe Pose...")
         self.mp_pose = mp.solutions.pose
-        self.pose = self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        self.pose = self.mp_pose.Pose(min_detection_confidence=0.9, min_tracking_confidence=0.5)
         self.mp_drawing = mp.solutions.drawing_utils
 
         # Fall detection state
