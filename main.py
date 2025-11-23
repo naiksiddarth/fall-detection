@@ -34,7 +34,7 @@ def detection_loop():
             frame = cam.capture_frame()
             if frame is None:
                 continue
-            print(f"{len(frame)} {len(frame[0])}")
+
 
             # 2. Process Frame
             processed_frame = detector.process_frame(frame)
