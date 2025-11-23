@@ -8,6 +8,7 @@ import shared_state
 from camera import CameraStream
 from fall_detector import FallDetector
 import web_server
+from config import frame_size
 
 def detection_loop():
     """
@@ -34,7 +35,7 @@ def detection_loop():
             frame = cam.capture_frame()
             if frame is None:
                 continue
-            print(f"{len(frame)} {len(frame[0])}")
+
 
             # 2. Process Frame
             processed_frame = detector.process_frame(frame)
@@ -46,7 +47,7 @@ def detection_loop():
                     print("Detection loop: Starting recording...")
                     filename = f"recording_{time.strftime('%Y%m%d_%H%M%S')}.avi"
                     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-                    shared_state.video_writer = cv2.VideoWriter(filename, fourcc, 20.0, (640, 480))
+                    shared_state.video_writer = cv2.VideoWriter(filename, fourcc, 20.0, (frame_size[0], frame_size[1]))
                     print(f"Recording to {filename}")
 
                 # Check if state *changed* from True to False (STOP)
