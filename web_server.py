@@ -8,16 +8,22 @@ import shared_state  # Import our shared state module
 app = Flask(__name__)
 PORT = 2131
 
+def get_new_frame():
+    pass
+
+prev_frame_count = 0
+
 def generate_frames():
+
     """Generator function to stream pre-encoded JPEG frames."""
     while True:
         with shared_state.frame_lock:
-            if shared_state.jpeg_frame is None:
-                # If the first frame isn't ready, wait
-                time.sleep(0.1)
+            if shared_state.frame_count[0] - prev_frame_count == 0:
+                # If new frame is not generated
                 continue
             frame_to_send = shared_state.jpeg_frame
-        
+        # print(shared_state.frame_count[0])
+            
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_to_send + b'\r\n')
         

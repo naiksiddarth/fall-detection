@@ -67,7 +67,7 @@ def detection_loop():
             if flag:
                 with shared_state.frame_lock:
                     shared_state.jpeg_frame = bytearray(encoded_image)
-                    
+                    shared_state.frame_count[0] += 1
     except KeyboardInterrupt:
         print("Detection loop interrupted.")
     except Exception as e:

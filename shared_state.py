@@ -8,7 +8,7 @@ recording_lock = threading.Lock() # Lock for accessing recording state
 
 # --- Streaming ---
 jpeg_frame = None           # Stores the latest *encoded* JPEG frame for streaming
-
+frame_count = [0]
 # --- Recording ---
 is_recording = False
 video_writer = None
