@@ -1,6 +1,7 @@
 # camera.py
 from picamera2 import Picamera2
 from config import frame_size
+import cv2
 
 class CameraStream:
     def __init__(self, width=640, height=480):
@@ -20,7 +21,9 @@ class CameraStream:
     def capture_frame(self):
         """Captures a single frame from the camera."""
         # capture_array returns a NumPy array
-        return self.picam2.capture_array()
+         
+        frame = self.picam2.capture_array()
+        return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     def stop(self):
         """Stops the camera stream."""
