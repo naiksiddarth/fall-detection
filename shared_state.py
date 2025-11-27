@@ -12,3 +12,11 @@ frame_count = [0]
 # --- Recording ---
 is_recording = False
 video_writer = None
+
+# how to check fall
+check_rapid_fall = False
+
+
+
+hip_shoulder_height_diff = 0
+

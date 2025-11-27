@@ -5,6 +5,7 @@ import numpy as np
 import os
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+import shared_state
 
 class FallDetector:
     def __init__(self, model_path='pose_landmarker_lite.task'):
@@ -28,9 +29,9 @@ class FallDetector:
         options = vision.PoseLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.VIDEO,
-            min_pose_detection_confidence=0.5,
-            min_pose_presence_confidence=0.5,
-            min_tracking_confidence=0.5
+            min_pose_detection_confidence=0.8,
+            min_pose_presence_confidence=0.3,
+            min_tracking_confidence=0.7
         )
         
         # 3. Create the Landmarker
@@ -69,32 +70,27 @@ class FallDetector:
             if left_hip_y is not None and right_hip_y is not None:
                 current_hip_y = (left_hip_y + right_hip_y) / 2
                 
-                # 1. Rapid Drop Check
-                if self.last_hip_y > 0 and (self.last_hip_y - current_hip_y) > self.fall_threshold:
-                    if not self.fall_detected:
-                        print("Potential Fall: Rapid drop detected!")
-                        self.fall_detected = True
-                        self.fall_time_start = time.time()
+                if shared_state.check_rapid_fall:
+                    if self.last_hip_y > 0 and (self.last_hip_y - current_hip_y) > self.fall_threshold:
+                        if not self.fall_detected:
+                            print("Potential Fall: Rapid drop detected!")
+                            self.fall_detected = True
+                            self.fall_time_start = time.time()
 
                 # 2. Horizontal Orientation Check
                 if left_shoulder_y is not None and right_shoulder_y is not None:
                     hip_shoulder_height_diff = abs(current_hip_y - (left_shoulder_y + right_shoulder_y) / 2)
+                    shared_state.hip_shoulder_height_diff = hip_shoulder_height_diff
                     if hip_shoulder_height_diff < 50:
                         self.time_in_horizontal_pos += 1
                     else:
                         self.time_in_horizontal_pos = 0
                 
                 # 3. Confirmation
-                if self.fall_detected or self.time_in_horizontal_pos > 60:
-                    if not self.fall_detected:
-                        print("Potential Fall: Person is horizontal!")
-                        self.fall_detected = True
-                        self.fall_time_start = time.time()
-                    if time.time() - self.fall_time_start > 2.0:
-                        return "FALL DETECTED"
-                else:
-                    self.fall_detected = False
-                    self.fall_time_start = 0
+                if self.time_in_horizontal_pos > 60:
+                    self.time_in_horizontal_pos = 0
+                    return "FALL DETECTED"
+
                 
                 self.last_hip_y = current_hip_y
         return None
@@ -167,6 +163,9 @@ class FallDetector:
         self.prev_time = current_time
         cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
                     1, (0, 255, 0), 2, cv2.LINE_AA)
+        cv2.putText(frame, f"Height diff: {shared_state.hip_shoulder_height_diff:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+                    1, (0, 255, 0), 2, cv2.LINE_AA)
+        
         
         return frame
 
