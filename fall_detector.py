@@ -50,6 +50,7 @@ class FallDetector:
         # Manual frame timestamp counter
         self.current_timestamp_ms = 0
 
+
     def _get_landmark_coords(self, landmark_list, index):
         """Helper to get pixel coordinates from the new landmark object."""
         try:
@@ -88,7 +89,6 @@ class FallDetector:
                 
                 # 3. Confirmation
                 if self.time_in_horizontal_pos > 60:
-                    self.time_in_horizontal_pos = 0
                     return "FALL DETECTED"
 
                 
@@ -149,9 +149,10 @@ class FallDetector:
         # 5. Check for fall
         fall_status = self._check_fall(current_landmarks)
         if fall_status:
+            self.fall_detected_at = time.time()
             cv2.putText(frame, fall_status, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (0, 0, 255), 4, cv2.LINE_AA)
-
+            
         # 6. Draw landmarks
         self._draw_landmarks_manually(frame, current_landmarks)
 
