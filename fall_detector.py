@@ -6,6 +6,7 @@ import os
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import shared_state
+import send_msg
 
 class FallDetector:
     def __init__(self, model_path='pose_landmarker_lite.task'):
@@ -149,7 +150,7 @@ class FallDetector:
         # 5. Check for fall
         fall_status = self._check_fall(current_landmarks)
         if fall_status:
-            self.fall_detected_at = time.time()
+            send_msg.send_msg()
             cv2.putText(frame, fall_status, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (0, 0, 255), 4, cv2.LINE_AA)
             
