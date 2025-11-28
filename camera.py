@@ -23,6 +23,7 @@ class CameraStream:
         # capture_array returns a NumPy array
          
         frame = self.picam2.capture_array()
+        frame = cv2.flip(frame, 0)
         return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     def stop(self):
