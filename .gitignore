@@ -1,3 +1,5 @@
 penv
 *.pyc
 todo
+*.avi
+recordings
