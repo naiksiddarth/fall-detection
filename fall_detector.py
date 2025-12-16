@@ -5,22 +5,25 @@ import numpy as np
 import os
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+import shared_state
+import send_msg
 
 class FallDetector:
     def __init__(self, model_path='pose_landmarker_lite.task'):
         print("Initializing MediaPipe Tasks Pose Landmarker...")
 
-        # --- FIX: Verify file existence to debug path issues ---
+        # --- FIX: Suppress MediaPipe/TensorFlow Console Spam ---
+        os.environ['GLOG_minloglevel'] = '2'
+
+        # --- FIX: Verify file existence ---
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found at: {os.path.abspath(model_path)}")
-        
+
         # --- FIX: Load model into memory (Buffer) ---
-        # Passing the file path directly to C++ sometimes fails on Linux/Pi.
-        # Reading it as bytes in Python is much more robust.
         with open(model_path, 'rb') as f:
             model_buffer = f.read()
         
-        # 1. Create BaseOptions using the BUFFER, not the path
+        # 1. Create BaseOptions using the BUFFER
         base_options = python.BaseOptions(model_asset_buffer=model_buffer)
         
         # 2. Create PoseLandmarkerOptions
@@ -28,8 +31,8 @@ class FallDetector:
             base_options=base_options,
             running_mode=vision.RunningMode.VIDEO,
             min_pose_detection_confidence=0.85,
-            min_pose_presence_confidence=0.85,
-            min_tracking_confidence=0.85
+            min_pose_presence_confidence=0.3,
+            min_tracking_confidence=0.7
         )
         
         # 3. Create the Landmarker
@@ -45,8 +48,9 @@ class FallDetector:
         # FPS calculation state
         self.prev_time = 0
         
-        # Use a manual frame timestamp counter
+        # Manual frame timestamp counter
         self.current_timestamp_ms = 0
+
 
     def _get_landmark_coords(self, landmark_list, index):
         """Helper to get pixel coordinates from the new landmark object."""
@@ -68,32 +72,26 @@ class FallDetector:
             if left_hip_y is not None and right_hip_y is not None:
                 current_hip_y = (left_hip_y + right_hip_y) / 2
                 
-                # 1. Rapid Drop Check
-                if self.last_hip_y > 0 and (self.last_hip_y - current_hip_y) > self.fall_threshold:
-                    if not self.fall_detected:
-                        print("Potential Fall: Rapid drop detected!")
-                        self.fall_detected = True
-                        self.fall_time_start = time.time()
+                if shared_state.check_rapid_fall:
+                    if self.last_hip_y > 0 and (self.last_hip_y - current_hip_y) > self.fall_threshold:
+                        if not self.fall_detected:
+                            print("Potential Fall: Rapid drop detected!")
+                            self.fall_detected = True
+                            self.fall_time_start = time.time()
 
                 # 2. Horizontal Orientation Check
                 if left_shoulder_y is not None and right_shoulder_y is not None:
                     hip_shoulder_height_diff = abs(current_hip_y - (left_shoulder_y + right_shoulder_y) / 2)
+                    shared_state.hip_shoulder_height_diff = hip_shoulder_height_diff
                     if hip_shoulder_height_diff < 50:
                         self.time_in_horizontal_pos += 1
                     else:
                         self.time_in_horizontal_pos = 0
                 
                 # 3. Confirmation
-                if self.fall_detected or self.time_in_horizontal_pos > 60:
-                    if not self.fall_detected:
-                        print("Potential Fall: Person is horizontal!")
-                        self.fall_detected = True
-                        self.fall_time_start = time.time()
-                    if time.time() - self.fall_time_start > 2.0:
-                        return "FALL DETECTED"
-                else:
-                    self.fall_detected = False
-                    self.fall_time_start = 0
+                if self.time_in_horizontal_pos > 60:
+                    return "FALL DETECTED"
+
                 
                 self.last_hip_y = current_hip_y
         return None
@@ -124,14 +122,16 @@ class FallDetector:
 
     def process_frame(self, frame):
         """
-        Processes a single frame:
-        1. Converts to MP Image.
-        2. Runs detection (VIDEO mode) with synthetic timestamp.
-        3. Checks fall.
-        4. Draws visuals.
+        Processes a single frame.
         """
         # --- FPS Timer Start ---
         current_time = time.time()
+        
+        # --- FIX: Ensure memory is contiguous ---
+        # Picamera2 on Raspberry Pi often returns padded arrays (strides).
+        # MediaPipe expects packed arrays. This fixes "scrambled" or "rubbish" video.
+        if not frame.flags['C_CONTIGUOUS']:
+            frame = np.ascontiguousarray(frame)
         
         # 1. Convert numpy array (frame) to MediaPipe Image
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
@@ -150,9 +150,10 @@ class FallDetector:
         # 5. Check for fall
         fall_status = self._check_fall(current_landmarks)
         if fall_status:
+            send_msg.send_msg()
             cv2.putText(frame, fall_status, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (0, 0, 255), 4, cv2.LINE_AA)
-
+            
         # 6. Draw landmarks
         self._draw_landmarks_manually(frame, current_landmarks)
 
@@ -164,6 +165,9 @@ class FallDetector:
         self.prev_time = current_time
         cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
                     1, (0, 255, 0), 2, cv2.LINE_AA)
+        cv2.putText(frame, f"Height diff: {shared_state.hip_shoulder_height_diff:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+                    1, (0, 255, 0), 2, cv2.LINE_AA)
+        
         
         return frame
 

@@ -45,7 +45,7 @@ def detection_loop():
                 # Check if state *changed* from False to True (START)
                 if shared_state.is_recording and shared_state.video_writer is None:
                     print("Detection loop: Starting recording...")
-                    filename = f"recording_{time.strftime('%Y%m%d_%H%M%S')}.avi"
+                    filename = f"recordings/recording_{time.strftime('%Y%m%d_%H%M%S')}.avi"
                     fourcc = cv2.VideoWriter_fourcc(*'XVID')
                     shared_state.video_writer = cv2.VideoWriter(filename, fourcc, 20.0, (frame_size[0], frame_size[1]))
                     print(f"Recording to {filename}")
@@ -67,7 +67,7 @@ def detection_loop():
             if flag:
                 with shared_state.frame_lock:
                     shared_state.jpeg_frame = bytearray(encoded_image)
-                    
+                    shared_state.frame_count[0] += 1
     except KeyboardInterrupt:
         print("Detection loop interrupted.")
     except Exception as e:

@@ -2,3 +2,5 @@ penv
 *.pyc
 todo
 pose_landmarker_lite.task
+*.avi
+recordings
