@@ -13,7 +13,7 @@ class FallDetector:
         # --- FIX: Verify file existence to debug path issues ---
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found at: {os.path.abspath(model_path)}")
-
+        
         # --- FIX: Load model into memory (Buffer) ---
         # Passing the file path directly to C++ sometimes fails on Linux/Pi.
         # Reading it as bytes in Python is much more robust.
@@ -27,9 +27,9 @@ class FallDetector:
         options = vision.PoseLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.VIDEO,
-            min_pose_detection_confidence=0.8,
-            min_pose_presence_confidence=0.8,
-            min_tracking_confidence=0.8
+            min_pose_detection_confidence=0.85,
+            min_pose_presence_confidence=0.85,
+            min_tracking_confidence=0.85
         )
         
         # 3. Create the Landmarker
