@@ -20,3 +20,4 @@ check_rapid_fall = False
 
 hip_shoulder_height_diff = 0
 
+frame_size = []

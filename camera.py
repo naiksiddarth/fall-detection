@@ -1,8 +1,7 @@
 # camera.py
 from picamera2 import Picamera2
-from config import frame_size
 import cv2
-
+import shared_state
 class CameraStream:
     def __init__(self, width=640, height=480):
         print("Starting camera feed...")
@@ -14,8 +13,8 @@ class CameraStream:
         
     def start(self):
         """Starts the camera stream."""
-        frame_size.append(640)
-        frame_size.append(480)
+        shared_state.frame_size.append(640)
+        shared_state.frame_size.append(480)
         self.picam2.start()
 
     def capture_frame(self):
