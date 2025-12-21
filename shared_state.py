@@ -14,10 +14,16 @@ is_recording = False
 video_writer = None
 
 # how to check fall
-check_rapid_fall = False
+check_rapid_fall = True
 
 
 
 hip_shoulder_height_diff = 0
 
 frame_size = []
+
+rapid_fall = False
+
+fall_detected = True
+
+message_sent = True

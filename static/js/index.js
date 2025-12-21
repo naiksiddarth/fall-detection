@@ -27,4 +27,11 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.error("Element with ID 'record' not found.");
     }
+
+    const reset = document.getElementById("reset")
+    reset.addEventListener('click', function() {
+        fetch('/reset', {
+            method : "POST"
+        })
+    })
 });
