@@ -1,9 +1,8 @@
-# web_server.py
-from flask import Flask, Response, redirect, url_for
+from flask import Flask, Response, redirect, url_for, render_template, jsonify
 import time
 import os
 import signal
-import shared_state  # Import our shared state module
+import shared_state
 
 app = Flask(__name__)
 PORT = 2131
@@ -43,25 +42,8 @@ def index():
     with shared_state.recording_lock:
         rec_status = shared_state.is_recording
     
-    record_button_text = "Stop Recording" if rec_status else "Start Recording"
 
-    return f"""
-    <html>
-    <head><title>Fall Detection Stream</title></head>
-    <body>
-        <h1>Fall Detection Stream</h1>
-        <p>Live feed from Raspberry Pi (Port {PORT})</p>
-        <img src="/video_feed" width="640" height="480">
-        <hr>
-        <form action="/toggle_record" method="post" style="display:inline-block;">
-            <input type="submit" value="{record_button_text}" style="padding: 10px; font-size: 16px;">
-        </form>
-        <form action="/shutdown" method="post" style="display:inline-block; margin-left: 20px;">
-            <input type="submit" value="Exit Program" style="padding: 10px; font-size: 16px; background-color: #ffcccc;">
-        </form>
-    </body>
-    </html>
-    """
+    return render_template('index.html', port=PORT)
 
 @app.route('/toggle_record', methods=['POST'])
 def toggle_record():
@@ -70,10 +52,12 @@ def toggle_record():
         shared_state.is_recording = not shared_state.is_recording
         if shared_state.is_recording:
             print("Web request: START recording")
+            return jsonify({"is_recording": True})
         else:
             print("Web request: STOP recording")
+            return jsonify({"is_recording": False})
     
-    return redirect(url_for('index'))
+    
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
