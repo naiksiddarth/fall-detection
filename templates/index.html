@@ -1,0 +1,24 @@
+<html>
+
+<head>
+    <title>Fall Detection Dashboard</title>
+    <link rel="stylesheet" href={{url_for('static', filename='css/style.css' )}}>
+    <script src="{{url_for('static', filename="js/index.js")}}"></script>
+</head>
+
+<body>
+    <h1>Fall Detection Stream</h1>
+    <p>Live feed from Raspberry Pi (Port {{port}})</p>
+    <img src="/video_feed" width="640" height="480">
+    <hr>
+
+    <button id="record" class="button">
+        Start Recording
+    </button>
+
+    <button id="shutdown" class="button">
+        Close
+    </button>
+</body>
+
+</html>
