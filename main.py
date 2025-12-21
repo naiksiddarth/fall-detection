@@ -8,7 +8,7 @@ import shared_state
 from camera import CameraStream
 from fall_detector import FallDetector
 import web_server
-
+from send_msg import alert
 
 def detection_loop():
     """
@@ -95,7 +95,9 @@ if __name__ == '__main__':
         # Start the detection loop in a separate thread
         print("Starting detection thread...")
         det_thread = threading.Thread(target=detection_loop, daemon=True)
+        msg_thread = threading.Thread(target=alert)
         det_thread.start()
+        msg_thread.start()
 
         # Start the web server (this will block the main thread)
         web_server.start_server()
@@ -104,5 +106,6 @@ if __name__ == '__main__':
         print("\nCtrl+C pressed in main. Shutting down...")
         shared_state.running = False
         det_thread.join(timeout=2.0) # Wait for detection thread to finish
+        msg_thread.join(timeout=3.0)
     finally:
         print("Script finished.")
