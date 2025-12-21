@@ -24,6 +24,6 @@ frame_size = []
 
 rapid_fall = False
 
-fall_detected = True
+fall_detected = False
 
-message_sent = True
+message_sent = False

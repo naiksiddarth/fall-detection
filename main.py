@@ -95,7 +95,7 @@ if __name__ == '__main__':
         # Start the detection loop in a separate thread
         print("Starting detection thread...")
         det_thread = threading.Thread(target=detection_loop, daemon=True)
-        msg_thread = threading.Thread(target=alert)
+        msg_thread = threading.Thread(target=alert, daemon=True)
         det_thread.start()
         msg_thread.start()
 
@@ -106,6 +106,6 @@ if __name__ == '__main__':
         print("\nCtrl+C pressed in main. Shutting down...")
         shared_state.running = False
         det_thread.join(timeout=2.0) # Wait for detection thread to finish
-        msg_thread.join(timeout=3.0)
+        msg_thread.join(timeout=1.0)
     finally:
         print("Script finished.")
