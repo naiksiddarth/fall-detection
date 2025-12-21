@@ -74,8 +74,8 @@ class FallDetector:
             self.frame_buffer.clear()
             return None
         
-        if shared_state.fall_detected:
-            return None
+        # if shared_state.fall_detected:
+        #     return None
 
         left_hip_x, left_hip_y = self._get_landmark_coords(pose_landmarks, 23)
         right_hip_x, right_hip_y = self._get_landmark_coords(pose_landmarks, 24)
@@ -88,14 +88,17 @@ class FallDetector:
             return None
 
         current_hip_y = (left_hip_y + right_hip_y) / 2
-                
+        current_shoulder_y = (left_shoulder_y + right_shoulder_y) / 2
         if not shared_state.check_rapid_fall:
             return None
+        
+        self.cord_buffer.append(current_shoulder_y)
 
         try :
             start_cord = self.cord_buffer[0]
             end_cord = self.cord_buffer[-1]
             fall_speed = (end_cord - start_cord) 
+            print(fall_speed)
             if fall_speed >= self.fall_threshold:
                 shared_state.rapid_fall = True
         except IndexError:
@@ -103,11 +106,11 @@ class FallDetector:
         if shared_state.rapid_fall:
             hip_shoulder_height_diff = abs(current_hip_y - (left_shoulder_y + right_shoulder_y) / 2)
             shared_state.hip_shoulder_height_diff = hip_shoulder_height_diff
-            print(hip_shoulder_height_diff)
             if hip_shoulder_height_diff < 50:
                 self.time_in_horizontal_pos += 1
             else:
                 self.time_in_horizontal_pos = 0
+                shared_state.rapid_fall = False
 
             if self.time_in_horizontal_pos > 60:
                 shared_state.fall_detected = True
