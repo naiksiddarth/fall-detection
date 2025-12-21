@@ -1,7 +1,6 @@
 import requests
 def send_msg():
-    response = requests.get("https://n8n.siddarthnaik.online/webhook/e4f307cc-ce59-4172-a80d-7e7fbaf4b2e6")
-
+    response = requests.get("https://n8n.siddarthnaik.online/webhook/247a06cb-70a5-4091-bfdb-e2c5cccfd281")
 
 if __name__ == "__main__":
     send_msg()
