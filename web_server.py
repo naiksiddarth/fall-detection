@@ -56,8 +56,20 @@ def toggle_record():
         else:
             print("Web request: STOP recording")
             return jsonify({"is_recording": False})
-    
-    
+
+@app.route('/reset', methods=["POST"])
+def reset():
+    shared_state.rapid_fall = False
+    shared_state.fall_detected = False
+    shared_state.message_sent = False
+    return "done"
+
+@app.route('/test')
+def test():
+    shared_state.rapid_fall = False
+    shared_state.fall_detected = True
+    shared_state.message_sent = False
+    return "done"
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():

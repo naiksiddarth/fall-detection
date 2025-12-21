@@ -6,7 +6,11 @@ import os
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import shared_state
-import send_msg
+
+
+from collections import deque
+
+
 
 class FallDetector:
     def __init__(self, model_path='pose_landmarker_lite.task'):
@@ -14,6 +18,9 @@ class FallDetector:
 
         # --- FIX: Suppress MediaPipe/TensorFlow Console Spam ---
         os.environ['GLOG_minloglevel'] = '2'
+
+        self.frame_buffer = deque(maxlen=150)
+        self.cord_buffer = deque(maxlen=30)
 
         # --- FIX: Verify file existence ---
         if not os.path.exists(model_path):
@@ -40,9 +47,7 @@ class FallDetector:
 
         # Fall detection state
         self.fall_detected = False
-        self.last_hip_y = 0
         self.fall_threshold = 100
-        self.fall_time_start = 0
         self.time_in_horizontal_pos = 0
 
         # FPS calculation state
@@ -57,43 +62,57 @@ class FallDetector:
         try:
             landmark = landmark_list[index]
             return int(landmark.x * 640), int(landmark.y * 480)
+        
         except IndexError:
             return None, None
 
     def _check_fall(self, pose_landmarks):
         """Fall detection logic adapted for Tasks API result structure."""
-        if pose_landmarks:
-            # Indices: Left Hip(23), Right Hip(24), Left Shoulder(11), Right Shoulder(12)
-            left_hip_x, left_hip_y = self._get_landmark_coords(pose_landmarks, 23)
-            right_hip_x, right_hip_y = self._get_landmark_coords(pose_landmarks, 24)
-            left_shoulder_x, left_shoulder_y = self._get_landmark_coords(pose_landmarks, 11)
-            right_shoulder_x, right_shoulder_y = self._get_landmark_coords(pose_landmarks, 12)
 
-            if left_hip_y is not None and right_hip_y is not None:
-                current_hip_y = (left_hip_y + right_hip_y) / 2
-                
-                if shared_state.check_rapid_fall:
-                    if self.last_hip_y > 0 and (self.last_hip_y - current_hip_y) > self.fall_threshold:
-                        if not self.fall_detected:
-                            print("Potential Fall: Rapid drop detected!")
-                            self.fall_detected = True
-                            self.fall_time_start = time.time()
+        if pose_landmarks is None:
+            self.cord_buffer.clear()
+            self.frame_buffer.clear()
+            return None
+        
+        if shared_state.fall_detected:
+            return None
 
-                # 2. Horizontal Orientation Check
-                if left_shoulder_y is not None and right_shoulder_y is not None:
-                    hip_shoulder_height_diff = abs(current_hip_y - (left_shoulder_y + right_shoulder_y) / 2)
-                    shared_state.hip_shoulder_height_diff = hip_shoulder_height_diff
-                    if hip_shoulder_height_diff < 50:
-                        self.time_in_horizontal_pos += 1
-                    else:
-                        self.time_in_horizontal_pos = 0
-                
-                # 3. Confirmation
-                if self.time_in_horizontal_pos > 60:
-                    return "FALL DETECTED"
+        left_hip_x, left_hip_y = self._get_landmark_coords(pose_landmarks, 23)
+        right_hip_x, right_hip_y = self._get_landmark_coords(pose_landmarks, 24)
+        left_shoulder_x, left_shoulder_y = self._get_landmark_coords(pose_landmarks, 11)
+        right_shoulder_x, right_shoulder_y = self._get_landmark_coords(pose_landmarks, 12)
+        if left_hip_y is None or right_hip_y is  None:
+            return None
 
+        if left_shoulder_y is None or right_shoulder_y is None:
+            return None
+
+        current_hip_y = (left_hip_y + right_hip_y) / 2
                 
-                self.last_hip_y = current_hip_y
+        if not shared_state.check_rapid_fall:
+            return None
+
+        try :
+            start_cord = self.cord_buffer[0]
+            end_cord = self.cord_buffer[-1]
+            fall_speed = (end_cord - start_cord) 
+            if fall_speed >= self.fall_threshold:
+                shared_state.rapid_fall = True
+        except IndexError:
+            pass
+        if shared_state.rapid_fall:
+            hip_shoulder_height_diff = abs(current_hip_y - (left_shoulder_y + right_shoulder_y) / 2)
+            shared_state.hip_shoulder_height_diff = hip_shoulder_height_diff
+            print(hip_shoulder_height_diff)
+            if hip_shoulder_height_diff < 50:
+                self.time_in_horizontal_pos += 1
+            else:
+                self.time_in_horizontal_pos = 0
+
+            if self.time_in_horizontal_pos > 60:
+                shared_state.fall_detected = True
+                return "FALL DETECTED"
+
         return None
 
     def _draw_landmarks_manually(self, frame, landmarks):
@@ -150,7 +169,6 @@ class FallDetector:
         # 5. Check for fall
         fall_status = self._check_fall(current_landmarks)
         if fall_status:
-            send_msg.send_msg()
             cv2.putText(frame, fall_status, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (0, 0, 255), 4, cv2.LINE_AA)
             
